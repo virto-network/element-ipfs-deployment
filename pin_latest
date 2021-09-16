@@ -1,0 +1,30 @@
+#!/bin/sh
+set -e
+
+if ! [ -x "$(command -v ipfs)" ]; then
+  echo 'Install IPFS.' >&2
+  exit 1
+fi
+if ! [ -x "$(command -v jq)" ]; then
+  echo 'Install jq' >&2
+  exit 1
+fi
+
+SERVER_NAME="${SERVER_NAME:-virto.community}"
+SERVER_URL="${SERVER_URL:-https://m.virto.community}"
+PIN_SERVICE="${PIN_SERVICE:-pinata}"
+
+# download release
+REPO="vector-im/element-web"
+RELEASE="https://api.github.com/repos/$REPO/releases/latest"
+URL=$(curl -Ls $RELEASE | jq -r .assets[0].browser_download_url)
+DIR=$(basename -s .tar.gz $URL)
+curl -Ls $URL | tar zxf -
+
+# copy custom config
+cp config.json $DIR/config.json
+
+# pin to IPFS
+ID=$(ipfs add -rQ $DIR)
+ipfs pin add $ID
+ipfs pin remote add --service=$PIN_SERVICE --name=$DIR $ID
